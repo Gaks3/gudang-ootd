@@ -1,20 +1,142 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "mysql"
-    url      = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+model User {
+  id String @id @default(cuid())
+  username String
+  email String @unique
+  hashedPassword String
+  isAdmin Boolean
+  image String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@index([name])
+  session Session[]
+  user Address[]
+  order Order[]
+  cartItem CartItem[]
+
+  @@map("user")
+}
+
+model Session {
+  id  String  @id
+  userId  String
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+
+  @@map("session")
+}
+
+model Address {
+  id Int @id @default(autoincrement())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  first_name String
+  last_name String
+  phone String
+  province String
+  district String
+  subDistrict String
+  village String
+
+  @@map("address")
+}
+
+model ProductCategory {
+  id Int @id @default(autoincrement())
+  name String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product[]
+
+  @@map("product_category")
+}
+
+model Product {
+  id String @id @default(cuid())
+  description String @db.Text
+  image String
+  name String
+  price Int
+  stock Int
+  categoryId Int
+  category ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cartItem CartItem[]
+  orderItem OrderItem[]
+
+  @@map("product")
+}
+
+// model Cart {
+//   id Int @id @default(autoincrement())
+//   userId String @unique
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   cartItem CartItem[]
+
+//   @@map("cart")
+// }
+
+model CartItem {
+  id Int @id @default(autoincrement())
+  productId String
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // cartId Int
+  // cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  quantity Int @default(1)
+  
+  @@map("cart_item")
+  @@unique([userId, productId])
+}
+
+model Order {
+  id String @id @default(cuid())
+  transactionId String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status StatusOrder
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItem OrderItem[]
+
+  @@map("order")
+}
+
+enum StatusOrder {
+  success
+  failure
+  pending
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity Int @default(1)
+
+  @@map("order_item")
 }
